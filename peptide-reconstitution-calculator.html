@@ -128,10 +128,17 @@
     background: #fff;
   }
   #pep-recon .pr-unit select {
-    padding: 0 4px;
+    flex: none;
+    width: auto;
+    min-width: 4.5em;
+    padding: 0 22px 0 4px;
     font-size: 0.9rem;
     color: var(--pr-ink);
     cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235f6f74' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
   }
   #pep-recon .pr-input select.pr-select-full {
     cursor: pointer;
@@ -215,7 +222,7 @@
     <div class="pr-field">
       <label for="pr-water">Water added <span class="pr-hint">Bacteriostatic or sterile water, in millilitres</span></label>
       <div class="pr-input">
-        <input id="pr-water" type="number" inputmode="decimal" min="0" step="any" value="2">
+        <input id="pr-water" type="number" inputmode="decimal" min="0" step="any" value="3">
         <span class="pr-unit">mL</span>
       </div>
     </div>
@@ -223,7 +230,7 @@
     <div class="pr-field">
       <label for="pr-dose">Dose you want</label>
       <div class="pr-input">
-        <input id="pr-dose" type="number" inputmode="decimal" min="0" step="any" value="250">
+        <input id="pr-dose" type="number" inputmode="decimal" min="0" step="any" value="2.5">
         <span class="pr-unit">
           <select id="pr-dose-unit" aria-label="Dose unit">
             <option value="mcg" >mcg</option>
