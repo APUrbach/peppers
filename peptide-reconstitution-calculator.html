@@ -1,0 +1,412 @@
+<!--
+  Peptide reconstitution calculator — embeddable widget
+  =====================================================
+  Two ways to add this to a site:
+
+  1) Inline: copy everything from <div id="pep-recon"> through the closing
+     </script> tag and paste it into your page. All styles are scoped to
+     #pep-recon so they won't collide with your site's CSS.
+
+  2) Iframe: host this file as-is and embed it with
+     <iframe src="/peptide-reconstitution-calculator.html"
+             style="width:100%;max-width:880px;height:640px;border:0"></iframe>
+
+  No external dependencies.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peptide reconstitution calculator</title>
+<style>
+  body { margin: 0; background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="pep-recon">
+<style>
+  #pep-recon {
+    --pr-ink: #1b2a2f;
+    --pr-muted: #5f6f74;
+    --pr-line: #d5dee1;
+    --pr-field: #f5f8f9;
+    --pr-accent: #0e7c86;
+    --pr-accent-soft: #d6eef0;
+    --pr-fluid: #8fd3da;
+    --pr-warn: #9a5b00;
+    --pr-warn-bg: #fff4e0;
+    --pr-bad: #b3261e;
+    --pr-bad-bg: #fdecea;
+
+    box-sizing: border-box;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 28px 24px;
+    font: 16px/1.5 "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    color: var(--pr-ink);
+    background: #fff;
+    border: 1px solid var(--pr-line);
+    border-radius: 12px;
+  }
+  #pep-recon *, #pep-recon *::before, #pep-recon *::after { box-sizing: inherit; }
+
+  #pep-recon h2 {
+    margin: 0 0 4px;
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  #pep-recon .pr-lede {
+    margin: 0 0 24px;
+    color: var(--pr-muted);
+    font-size: 0.95rem;
+    max-width: 60ch;
+  }
+
+  #pep-recon .pr-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 32px;
+  }
+  @media (max-width: 680px) {
+    #pep-recon { padding: 20px 16px; }
+    #pep-recon .pr-grid { grid-template-columns: 1fr; gap: 24px; }
+  }
+
+  /* ---- inputs ---- */
+  #pep-recon .pr-field { margin-bottom: 16px; }
+  #pep-recon label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  #pep-recon .pr-hint {
+    display: block;
+    font-weight: 400;
+    color: var(--pr-muted);
+    font-size: 0.82rem;
+  }
+  #pep-recon .pr-input {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--pr-line);
+    border-radius: 8px;
+    background: var(--pr-field);
+    overflow: hidden;
+  }
+  #pep-recon .pr-input:focus-within {
+    border-color: var(--pr-accent);
+    box-shadow: 0 0 0 3px var(--pr-accent-soft);
+  }
+  #pep-recon input[type="number"],
+  #pep-recon select {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 1.05rem;
+    color: var(--pr-ink);
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  #pep-recon input::-webkit-outer-spin-button,
+  #pep-recon input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  #pep-recon .pr-unit {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    color: var(--pr-muted);
+    font-size: 0.9rem;
+    border-left: 1px solid var(--pr-line);
+    background: #fff;
+  }
+  #pep-recon .pr-unit select {
+    padding: 0 4px;
+    font-size: 0.9rem;
+    color: var(--pr-ink);
+    cursor: pointer;
+  }
+  #pep-recon .pr-input select.pr-select-full {
+    cursor: pointer;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235f6f74' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    -webkit-appearance: none; appearance: none;
+  }
+
+  /* ---- results ---- */
+  #pep-recon .pr-syringe { width: 100%; height: auto; display: block; margin: 4px 0 8px; }
+  #pep-recon .pr-draw {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 0 4px;
+  }
+  #pep-recon .pr-draw strong {
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--pr-accent);
+  }
+  #pep-recon .pr-draw span { color: var(--pr-muted); font-size: 1rem; }
+
+  #pep-recon dl {
+    margin: 16px 0 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: 0;
+    font-size: 0.95rem;
+  }
+  #pep-recon dl > div {
+    display: contents;
+  }
+  #pep-recon dt, #pep-recon dd {
+    margin: 0;
+    padding: 9px 0;
+    border-top: 1px solid var(--pr-line);
+  }
+  #pep-recon dt { color: var(--pr-muted); }
+  #pep-recon dd { text-align: right; font-weight: 600; }
+
+  #pep-recon .pr-note {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  #pep-recon .pr-note.warn { background: var(--pr-warn-bg); color: var(--pr-warn); }
+  #pep-recon .pr-note.bad  { background: var(--pr-bad-bg);  color: var(--pr-bad); }
+  #pep-recon .pr-note[hidden] { display: none; }
+
+  #pep-recon .pr-foot {
+    margin: 24px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--pr-line);
+    color: var(--pr-muted);
+    font-size: 0.82rem;
+    max-width: 70ch;
+  }
+</style>
+
+<h2>Peptide reconstitution calculator</h2>
+<p class="pr-lede">Enter what's on the vial, how much water you're adding, and the dose you want. The syringe shows exactly where to draw to.</p>
+
+<div class="pr-grid">
+  <div class="pr-inputs">
+    <div class="pr-field">
+      <label for="pr-vial">Peptide in vial <span class="pr-hint">Printed on the label, in milligrams</span></label>
+      <div class="pr-input">
+        <input id="pr-vial" type="number" inputmode="decimal" min="0" step="any" value="5" aria-describedby="pr-vial-unit">
+        <span class="pr-unit" id="pr-vial-unit">mg</span>
+      </div>
+    </div>
+
+    <div class="pr-field">
+      <label for="pr-water">Water added <span class="pr-hint">Bacteriostatic or sterile water, in millilitres</span></label>
+      <div class="pr-input">
+        <input id="pr-water" type="number" inputmode="decimal" min="0" step="any" value="2">
+        <span class="pr-unit">mL</span>
+      </div>
+    </div>
+
+    <div class="pr-field">
+      <label for="pr-dose">Dose you want</label>
+      <div class="pr-input">
+        <input id="pr-dose" type="number" inputmode="decimal" min="0" step="any" value="250">
+        <span class="pr-unit">
+          <select id="pr-dose-unit" aria-label="Dose unit">
+            <option value="mcg" selected>mcg</option>
+            <option value="mg">mg</option>
+          </select>
+        </span>
+      </div>
+    </div>
+
+    <div class="pr-field">
+      <label for="pr-syringe">Syringe <span class="pr-hint">Standard U-100 insulin syringe</span></label>
+      <div class="pr-input">
+        <select id="pr-syringe" class="pr-select-full">
+          <option value="30">0.3 mL (30 units)</option>
+          <option value="50">0.5 mL (50 units)</option>
+          <option value="100" selected>1 mL (100 units)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="pr-results" aria-live="polite">
+    <svg class="pr-syringe" viewBox="0 0 520 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pr-syringe-title">
+      <title id="pr-syringe-title">Syringe showing the fill line for this dose</title>
+      <!-- needle -->
+      <rect x="0" y="58" width="60" height="4" fill="#9aa8ac"/>
+      <!-- hub -->
+      <path d="M60 50 L80 50 L80 70 L60 70 Z" fill="#c3ced1"/>
+      <!-- barrel -->
+      <rect x="80" y="36" width="380" height="48" rx="4" fill="#fff" stroke="#8a999e" stroke-width="2"/>
+      <!-- fluid -->
+      <rect id="pr-fluid" x="82" y="38" width="0" height="44" rx="2" fill="#8fd3da"/>
+      <!-- ticks -->
+      <g id="pr-ticks" stroke="#1b2a2f" stroke-width="1.2"></g>
+      <g id="pr-tick-labels" font-size="11" fill="#5f6f74" text-anchor="middle"></g>
+      <!-- plunger -->
+      <g id="pr-plunger">
+        <rect id="pr-plunger-seal" x="82" y="38" width="10" height="44" rx="2" fill="#1b2a2f"/>
+        <rect id="pr-plunger-rod" x="92" y="54" width="380" height="12" fill="#b3bfc3"/>
+        <rect id="pr-plunger-cap" x="472" y="40" width="10" height="40" rx="2" fill="#8a999e"/>
+      </g>
+      <!-- flange -->
+      <rect x="455" y="26" width="8" height="68" rx="2" fill="#8a999e"/>
+      <!-- draw marker -->
+      <g id="pr-marker">
+        <line id="pr-marker-line" x1="82" y1="24" x2="82" y2="96" stroke="#0e7c86" stroke-width="2" stroke-dasharray="3 3"/>
+        <text id="pr-marker-text" x="82" y="16" font-size="12" font-weight="600" fill="#0e7c86" text-anchor="middle">0 units</text>
+      </g>
+    </svg>
+
+    <p class="pr-draw"><strong id="pr-units">—</strong><span id="pr-units-caption">units on the syringe</span></p>
+
+    <dl>
+      <div><dt>Volume to draw</dt><dd id="pr-volume">—</dd></div>
+      <div><dt>Concentration</dt><dd id="pr-conc">—</dd></div>
+      <div><dt>Per syringe unit</dt><dd id="pr-per-unit">—</dd></div>
+      <div><dt>Doses in this vial</dt><dd id="pr-doses">—</dd></div>
+    </dl>
+
+    <p id="pr-note" class="pr-note" hidden></p>
+  </div>
+</div>
+
+<p class="pr-foot">This tool only does the arithmetic. Dose, diluent and timing should follow the directions from your prescriber or pharmacist; if a result looks off, recheck the vial label before drawing anything up.</p>
+
+<script>
+(function () {
+  var root = document.getElementById('pep-recon');
+  var $ = function (id) { return root.querySelector('#' + id); };
+
+  var vialEl = $('pr-vial'), waterEl = $('pr-water'), doseEl = $('pr-dose'),
+      doseUnitEl = $('pr-dose-unit'), syringeEl = $('pr-syringe'),
+      unitsEl = $('pr-units'), unitsCapEl = $('pr-units-caption'),
+      volEl = $('pr-volume'), concEl = $('pr-conc'), perUnitEl = $('pr-per-unit'),
+      dosesEl = $('pr-doses'), noteEl = $('pr-note'),
+      fluid = $('pr-fluid'), ticks = $('pr-ticks'), tickLabels = $('pr-tick-labels'),
+      seal = $('pr-plunger-seal'), rod = $('pr-plunger-rod'), cap = $('pr-plunger-cap'),
+      markerLine = $('pr-marker-line'), markerText = $('pr-marker-text');
+
+  var BARREL_X = 82, BARREL_W = 376; // inner drawable width of the barrel
+
+  function fmt(n, maxDp) {
+    if (!isFinite(n)) return '—';
+    var s = n.toFixed(maxDp);
+    return s.replace(/\.?0+$/, '');
+  }
+
+  function drawTicks(capacity) {
+    var step = capacity === 30 ? 1 : 2;       // 0.3 mL syringes are marked in 1-unit steps
+    var labelEvery = capacity === 30 ? 5 : 10;
+    var t = '', l = '';
+    for (var u = 0; u <= capacity; u += step) {
+      var x = BARREL_X + (u / capacity) * BARREL_W;
+      var major = u % labelEvery === 0;
+      t += '<line x1="' + x + '" y1="38" x2="' + x + '" y2="' + (major ? 52 : 46) + '"/>';
+      if (major) l += '<text x="' + x + '" y="98">' + u + '</text>';
+    }
+    ticks.innerHTML = t;
+    tickLabels.innerHTML = l;
+  }
+
+  function setFill(units, capacity) {
+    var frac = Math.max(0, Math.min(1, units / capacity));
+    var x = BARREL_X + frac * BARREL_W;
+    fluid.setAttribute('width', frac * BARREL_W);
+    seal.setAttribute('x', x);
+    var capX = 472 + frac * 40;               // plunger eases out as the syringe fills
+    rod.setAttribute('x', x + 10);
+    rod.setAttribute('width', Math.max(0, capX - (x + 10)));
+    cap.setAttribute('x', capX);
+    markerLine.setAttribute('x1', x);
+    markerLine.setAttribute('x2', x);
+    var tx = Math.min(Math.max(x, 100), 440);
+    markerText.setAttribute('x', tx);
+  }
+
+  function showNote(kind, text) {
+    if (!text) { noteEl.hidden = true; noteEl.className = 'pr-note'; return; }
+    noteEl.hidden = false;
+    noteEl.className = 'pr-note ' + kind;
+    noteEl.textContent = text;
+  }
+
+  function calc() {
+    var vialMg = parseFloat(vialEl.value);
+    var waterMl = parseFloat(waterEl.value);
+    var dose = parseFloat(doseEl.value);
+    var doseMg = doseUnitEl.value === 'mcg' ? dose / 1000 : dose;
+    var capacity = parseInt(syringeEl.value, 10);
+
+    drawTicks(capacity);
+
+    if (!(vialMg > 0) || !(waterMl > 0) || !(doseMg > 0)) {
+      unitsEl.textContent = '—';
+      unitsCapEl.textContent = 'units on the syringe';
+      volEl.textContent = concEl.textContent = perUnitEl.textContent = dosesEl.textContent = '—';
+      setFill(0, capacity);
+      markerText.textContent = '';
+      showNote('', '');
+      return;
+    }
+
+    var concMgPerMl = vialMg / waterMl;          // mg per mL
+    var mcgPerUnit = concMgPerMl * 10;           // 1 unit = 0.01 mL on a U-100 syringe
+    var volMl = doseMg / concMgPerMl;
+    var units = volMl * 100;
+    var doses = vialMg / doseMg;
+
+    unitsEl.textContent = fmt(units, 1);
+    unitsCapEl.textContent = 'units on the syringe';
+    volEl.textContent = fmt(volMl, 3) + ' mL';
+    concEl.textContent = fmt(concMgPerMl, 3) + ' mg/mL  (' + fmt(concMgPerMl * 1000, 1) + ' mcg per 0.1 mL)';
+    perUnitEl.textContent = fmt(mcgPerUnit, 2) + ' mcg';
+    dosesEl.textContent = fmt(Math.floor(doses * 100) / 100, 2);
+
+    setFill(units, capacity);
+    markerText.textContent = fmt(units, 1) + ' units';
+
+    if (units > capacity) {
+      var fits = fmt(units / capacity, 1);
+      showNote('bad', 'This dose is ' + fmt(units, 1) + ' units, more than the ' + capacity +
+        '-unit syringe holds. Add less water so the same dose fits in one draw — ' +
+        fmt(waterMl * (capacity * 0.9) / units, 2) + ' mL would put it at about ' + fmt(capacity * 0.9, 0) +
+        ' units — or use a larger syringe. (' + fits + ' full syringes at the current mix.)');
+    } else if (units < 3) {
+      showNote('warn', 'Only ' + fmt(units, 1) + ' units — hard to measure accurately. Adding more water spreads the dose out: ' +
+        fmt(waterMl * 10 / units, 2) + ' mL of water would make this dose 10 units.');
+    } else if (doses < 1) {
+      showNote('warn', 'The vial holds less than one dose at this amount (' + fmt(vialMg, 2) + ' mg total).');
+    } else {
+      showNote('', '');
+    }
+  }
+
+  ['input', 'change'].forEach(function (ev) {
+    [vialEl, waterEl, doseEl, doseUnitEl, syringeEl].forEach(function (el) {
+      el.addEventListener(ev, calc);
+    });
+  });
+  calc();
+})();
+</script>
+</div>
+
+</body>
+</html>
